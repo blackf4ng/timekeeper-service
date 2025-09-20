@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: timekeeper-service
+  datasource:
+    url: jdbc:postgresql://database:5432/timekeeper
+    username: postgres
+    password: password
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+      javax:
+        persistence:
+          schema-generation:
+            create-source: metadata
+            scripts:
+              action: create
+              create-target: ./database/create.sql
+
+okta:
+  oauth2:
+    issuer: https://dev-bglprge8mcc8yj82.us.auth0.com/
+    client-id: 7s16iwyxHFmiZO7CJeRYmaFMTqB7nP4I
+    client-secret: SFJt4tZ3MusLoIP33_MU0PErbeiXbaFQ2NCTXcU0nxyx28gSpwLZ2hgoZUX7m-5C
+
+urlscan:
+  apiKey: 0199602b-b5b3-7568-b2c7-56e02906529c
+
+clients:
+  internal:
+    - "test"
+    - "auth0|68cded4685a500ec24490a7f"
