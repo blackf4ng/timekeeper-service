@@ -11,8 +11,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import org.timekeeper.exception.ForbiddenException;
-import org.timekeeper.exception.InvalidInputException;
+import org.timekeeper.exception.BadRequestException;
 import org.timekeeper.exception.ResourceNotFoundException;
+import org.timekeeper.exception.ThrottlingException;
 
 @Slf4j
 @ControllerAdvice
@@ -37,8 +38,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
 
-    @ExceptionHandler(InvalidInputException.class)
-    public ResponseEntity<ExceptionDetails> handle(InvalidInputException exception, WebRequest request) {
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ExceptionDetails> handle(BadRequestException exception, WebRequest request) {
         log.info("InvalidInputException encountered; translating to external exception: message={}", exception.getMessage());
 
         return handle(exception, HttpStatus.BAD_REQUEST);
@@ -50,6 +51,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
         HttpStatus status = HttpStatus.FORBIDDEN;
         return handle(exception, status.getReasonPhrase(), status);
+    }
+
+    @ExceptionHandler(ThrottlingException.class)
+    public ResponseEntity<ExceptionDetails> handle(ThrottlingException exception, WebRequest request) {
+        log.info("ThrottlingException encountered; translating to external exception: message={}", exception.getMessage());
+
+        HttpStatus status = HttpStatus.TOO_MANY_REQUESTS;
+        return handle(exception, status);
     }
 
     private ResponseEntity<ExceptionDetails> handle(

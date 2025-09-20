@@ -29,11 +29,29 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-  server:
+  api-server:
     build:
       context: .
     ports:
       - "80:8080"
+    environment:
+      - APPLICATION=API_SERVER
+    depends_on:
+      database:
+        condition: service_healthy
+  status-poller:
+    build:
+      context: .
+    environment:
+      - APPLICATION=STATUS_POLLER
+    depends_on:
+      database:
+        condition: service_healthy
+  scan-requester:
+    build:
+      context: .
+    environment:
+      - APPLICATION=SCAN_REQUESTER
     depends_on:
       database:
         condition: service_healthy

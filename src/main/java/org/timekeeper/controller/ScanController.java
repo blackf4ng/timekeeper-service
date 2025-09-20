@@ -18,10 +18,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.timekeeper.model.Page;
 import org.timekeeper.model.Scan;
+import org.timekeeper.model.ScanResultStatus;
 import org.timekeeper.model.request.CreateScanRequest;
 import org.timekeeper.model.request.PageRequest;
-import org.timekeeper.exception.InvalidInputException;
-import org.timekeeper.model.ScanStatus;
+import org.timekeeper.exception.BadRequestException;
 import org.timekeeper.service.ScanService;
 
 import java.util.Optional;
@@ -43,7 +43,7 @@ public class ScanController implements Controller {
         OidcUser user,
         @RequestParam
         @Parameter(description = "Status of scans to filter on; not providing a status will return all statuses")
-        Optional<ScanStatus> status,
+        Optional<ScanResultStatus> status,
         @Size
         @RequestParam(defaultValue = "0")
         @Parameter(description = "0-indexed page offset for pagination")
@@ -56,7 +56,7 @@ public class ScanController implements Controller {
             .page(page)
             .pageSize(pageSize)
             .build();
-        log.info("Listing scans: userId={}, status={} pageRequest={}", userId, status, pageRequest);
+        log.info("Listing scans: userId={} status={} pageRequest={}", userId, status, pageRequest);
 
         return scanService.listScans(
             userId,
@@ -72,7 +72,7 @@ public class ScanController implements Controller {
         @PathVariable Long scanId
     ) {
         String userId = getUserId(user);
-        log.info("Getting scan: userId={}, scanId={}", userId, scanId);
+        log.info("Getting scan: userId={} scanId={}", userId, scanId);
 
         return scanService.getScan(userId, scanId);
     }
@@ -88,7 +88,7 @@ public class ScanController implements Controller {
         String url = request.getUrl();
 
         if (!urlValidator.isValid(url)) {
-            throw new InvalidInputException(
+            throw new BadRequestException(
                 String.format("URL is malformed: url=%s", url)
             );
         }

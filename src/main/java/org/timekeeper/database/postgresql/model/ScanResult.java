@@ -8,7 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,8 +17,10 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.timekeeper.model.ScanResultStatus;
 
 import java.time.Instant;
+import java.util.List;
 
 @Data
 @Entity
@@ -27,23 +29,27 @@ import java.time.Instant;
 @Builder(toBuilder = true)
 @Table(
     indexes = {
-        @Index(columnList = "userId,createdAt"),
+        @Index(columnList = "url,createdAt"),
     })
-public class Scan {
+public class ScanResult {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    @Column(length = 100, nullable = false)
-    private String userId;
-
-    @ManyToOne(
+    @OneToMany(
         fetch = FetchType.LAZY,
         cascade = CascadeType.DETACH
     )
     @ToString.Exclude
-    private ScanResult result;
+    private List<Scan> scan;
+
+    @Column(length = 256, nullable = false)
+    private String url;
+
+    @Builder.Default
+    @Column(length = 25, nullable = false)
+    private ScanResultStatus status = ScanResultStatus.SUBMITTED;
 
     @CreationTimestamp
     private Instant createdAt;

@@ -1,24 +1,38 @@
 package org.timekeeper.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.timekeeper.database.postgresql.dal.ScanDal;
+import org.timekeeper.database.postgresql.dal.ScanResultDal;
+import org.timekeeper.database.postgresql.repository.ScanResultRepository;
 import org.timekeeper.exception.ResourceNotFoundException;
 import org.timekeeper.model.Page;
 import org.timekeeper.model.Scan;
-import org.timekeeper.model.ScanStatus;
+import org.timekeeper.model.ScanResult;
+import org.timekeeper.model.ScanResultStatus;
 import org.timekeeper.model.request.PageRequest;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 /**
  * Service layer responsible for handling business logic related to scans
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ScanService {
 
+    private static final Integer CREATE_DEDUPE_DAYS = 1;
+
+    private final static Clock clock = Clock.systemUTC();
+
     private final ScanDal scanDal;
+
+    private final ScanResultDal scanResultDal;
 
     /**
      * Creates a scan for the given user with the requested URL
@@ -31,9 +45,17 @@ public class ScanService {
         String userId,
         String url
     ) {
-        return scanDal.createScan(
-            userId, url
-        );
+        Instant now = clock.instant();
+        Instant dedupeCutoff = now.minus(CREATE_DEDUPE_DAYS, ChronoUnit.DAYS);
+        // If there was a scan that was submitted within the dedupe window across users, use that result
+        Optional<ScanResult> scanResultOptional = scanResultDal.getLatestScanResultOptional(url)
+            .filter(scan -> dedupeCutoff.isAfter(scan.getCreatedAt()));
+        scanResultOptional.ifPresent(result -> log.info("Existing scan result within deduplication window was found; returning: result={} dedupeCutoff={}", result, dedupeCutoff));
+
+
+        return scanResultOptional
+            .map(result -> scanDal.createScan(userId, url, result))
+            .orElseGet(() -> scanDal.createScan(userId, url));
     }
 
     /**
@@ -67,7 +89,7 @@ public class ScanService {
      */
     public Page<Scan> listScans(
         String userId,
-        Optional<ScanStatus> statusOptional,
+        Optional<ScanResultStatus> statusOptional,
         PageRequest pageRequest
     ) {
         return statusOptional
