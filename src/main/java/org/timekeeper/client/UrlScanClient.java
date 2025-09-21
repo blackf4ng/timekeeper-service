@@ -24,11 +24,13 @@ public class UrlScanClient {
     private final RestClient client;
 
     public UrlScanClient(
-        UrlScanClientConfig config
+        UrlScanClientConfig config,
+        RestClient.ResponseSpec.ErrorHandler responseErrorHandler
     ) {
         this.client = RestClient.builder()
             .baseUrl(config.getUrl())
             .defaultHeader(config.getApiKeyHeader(), config.getApiKey())
+            .defaultStatusHandler(statusCode -> true, responseErrorHandler)
             .build();
     }
 

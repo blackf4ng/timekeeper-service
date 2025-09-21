@@ -83,6 +83,10 @@ The UI can be leveraged to send requests and receive responses by expanding each
 
 To log out, navigate to http://localhost/logout.
 
+#### API Documentation
+
+OpenAPI documentation on the APIs are auto-generated and available from http://localhost/v3/api-docs.
+
 ### Unit Testing
 
 Unit tests run at build time and both line and branch coverage is required to be at least 80% in order to pass.
@@ -102,9 +106,31 @@ accounts for testing.
 *Note: Auth0 was chosen over a manual implementation in order to simulate standard authentication and authorization
 protocols through the Authorization header of requests*
 
-# Design
+## Usage
 
-![System Diagram](image/system.png)
+Refer to the [API docs](misc/api-docs.json) for available APIs and relevant schemas. It is recommended that a client be
+generated using updated OpenAPI specs and not manually created.
+
+Service-to-service authentication has not yet been implemented, but clients can issue requests to the APIs with a valid
+authorization token that is received from Auth0. To initiate a scan on a set of URLs:
+
+### Option 1
+
+1. Submit all desired URLs via `POST /scans`, storing the URL to scan ID mapping
+2. Poll the completion status of each URL via `GET /scans/${scanId}` until the status is `DONE` or `FAILED`
+3. (to be implemented) Retrieve the scan results in JSON via `GET /scans/${scanId}/results` for processing
+
+### Option 2 (to be implemented)
+
+1. Submit all desired URLs via `POST /scans`
+2. URL Scan Service processes changes off of change data capture on the `scan_result` Postgres table and sends a
+   notification to your client's message queue when status is updated to `DONE` or `FAILED`
+3. Asynchronously listen to messages from the message queue for when a scan has finished scanning or failed
+4. Retrieve the scan results in JSON via `GET /scans/${scanId}/results` for processing
+
+## Design
+
+![System Diagram](misc/system.png)
 
 The URL Scan Service is composed of 3 separate components:
 
@@ -124,7 +150,7 @@ For example:
 * In the event that clients are not sensitive to latency and can wait for an extended time to receive scan result, the
   API server can have more relaxed throttles against clients than what urlscan.io can provide
 
-## API Server
+### API Server
 
 The API Server provides a REST API for CRUD operations against URL scans through the following APIs:
 
@@ -141,7 +167,7 @@ the same parameters if submitted within a given dedupe window (currently 1 hour)
 The service exposes a Swagger UI, which can be used to issue requests against endpoints manually. The UI shows all
 available endpoints, model types, documentation, and sample request/responses that are used in the APIs.
 
-### Exception Handling
+#### Exception Handling
 
 Exceptions that occur in the API service are modeled as internal exceptions, then translated via a global interceptor
 into external exceptions. Once translated, external exceptions will specify the type of the internal exception that
@@ -157,7 +183,7 @@ The following list includes all external status codes and the internal exception
 
 Untranslated internal exceptions result in a 500 Internal Server Error to clients without error details.
 
-### Throttling
+#### Throttling
 
 Currently, throttling has not been implemented on the API Server. However, it is good practice to implement global and
 per-client
@@ -170,7 +196,7 @@ Backpressure, however, is very important in this case to ensure scans are fulfil
 backlog does not expand indefinitely. For applying backpressure, the depth of scan queue both globally and per-user
 should be measured, and throttling should be applied when the backlog gets sufficiently large.
 
-### Database
+#### Database
 
 Data for the service is persisted in a Postgres database that contains 2 tables:
 
@@ -182,7 +208,7 @@ Two tables are used in order to separate the handling of user scan requests, and
 urlscan.io. This separation allows for simpler deduplication on the scans that are sent to urlscan.io, which reduces
 load against the service.
 
-## Scan Requester
+### Scan Requester
 
 The Scan Requester is an asynchronous worker which runs on a schedule (currently every 10 seconds) to query scan
 requests that have not been sent to urlscan.io, and sends them to urlscan.io.
@@ -206,7 +232,7 @@ The worker performs the following steps on every run:
       the next run
 4. Repeat from 2. until there are no more pending results to submit
 
-### Error Handling
+#### Error Handling
 
 While the above steps outline a general approach to error handling, there are several gaps that still need to be
 addressed:
@@ -219,7 +245,7 @@ addressed:
    the scan result which can be updated during processing, this will likely lead to scans being missed. The pagination
    scheme needs to be updated to provide a cursor for where to pick the query back up from.
 
-## Status Poller
+### Status Poller
 
 The Status Poller is an asynchronous worker which runs on a schedule (currently every 10 seconds) to query scan
 requests that have been successfully submitted to urlscan.io, and checks if the results are ready.
@@ -244,7 +270,7 @@ The worker performs the following steps on every run:
       the next run
 4. Repeat from 2. until there are no more pending results to submit
 
-### Error Handling
+#### Error Handling
 
 As the Status Poller performs a similar workflow to the Scan Requester, it also contains the shortfalls in error
 handling found in the earlier section.

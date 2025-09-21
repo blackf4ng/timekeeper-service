@@ -2,6 +2,7 @@ package org.timekeeper.configuration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.timekeeper.client.NoOpResponseErrorHandler;
 import org.timekeeper.client.UrlScanClient;
 import org.timekeeper.configuration.client.UrlScanClientConfig;
 
@@ -9,8 +10,13 @@ import org.timekeeper.configuration.client.UrlScanClientConfig;
 public class ClientConfig {
 
     @Bean
-    public UrlScanClient urlScanClient(UrlScanClientConfig clientConfig) {
-        return new UrlScanClient(clientConfig);
+    public NoOpResponseErrorHandler noOpResponseErrorHandler() {
+        return new NoOpResponseErrorHandler();
+    }
+
+    @Bean
+    public UrlScanClient urlScanClient(UrlScanClientConfig clientConfig, NoOpResponseErrorHandler noOpResponseErrorHandler) {
+        return new UrlScanClient(clientConfig, noOpResponseErrorHandler);
     }
 
 }
