@@ -85,7 +85,7 @@ To log out, navigate to http://localhost/logout.
 
 ### Unit Testing
 
-Unit tests run at build time and both line and branch coverage is required to be at least (to be implemented) 80% in order to pass.
+Unit tests run at build time and both line and branch coverage is required to be at least 80% in order to pass.
 
 ### Integration Testing
 
