@@ -1,6 +1,7 @@
 package org.timekeeper.model.transform;
 
-import org.timekeeper.database.postgresql.model.ScanResult;
+import org.timekeeper.database.postgresql.model.ScanEntity;
+import org.timekeeper.database.postgresql.model.ScanResultEntity;
 import org.timekeeper.model.ScanSummary;
 
 /**
@@ -8,8 +9,8 @@ import org.timekeeper.model.ScanSummary;
  */
 public final class ScanSummaryTransform {
 
-    public static ScanSummary apply(org.timekeeper.database.postgresql.model.Scan from) {
-        ScanResult result = from.getResult();
+    public static ScanSummary apply(ScanEntity from) {
+        ScanResultEntity result = from.getResult();
 
         return ScanSummary.builder()
             .id(from.getId())

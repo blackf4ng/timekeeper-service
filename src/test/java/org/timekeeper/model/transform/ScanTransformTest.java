@@ -3,10 +3,9 @@ package org.timekeeper.model.transform;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.timekeeper.database.postgresql.model.Scan;
-import org.timekeeper.model.ScanResult;
+import org.timekeeper.database.postgresql.model.ScanEntity;
+import org.timekeeper.database.postgresql.model.ScanResultEntity;
 import org.timekeeper.model.ScanResultStatus;
-import org.timekeeper.model.ScanSummary;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -44,7 +43,7 @@ public class ScanTransformTest {
 
     private static final Instant SCAN_UPDATED_AT = RESULT_CREATED_AT.plus(3, ChronoUnit.DAYS);
 
-    private static final org.timekeeper.database.postgresql.model.ScanResult SCAN_RESULT_DATABASE = org.timekeeper.database.postgresql.model.ScanResult.builder()
+    private static final ScanResultEntity SCAN_RESULT_ENTITY = ScanResultEntity.builder()
         .id(SCAN_RESULT_ID)
         .url(URL)
         .status(STATUS)
@@ -57,10 +56,10 @@ public class ScanTransformTest {
         .updatedAt(RESULT_UPDATED_AT)
         .build();
 
-    private static final Scan SCAN_DATABASE = Scan.builder()
+    private static final ScanEntity SCAN_ENTITY = ScanEntity.builder()
         .id(SCAN_ID)
         .userId(USER_ID)
-        .result(SCAN_RESULT_DATABASE)
+        .result(SCAN_RESULT_ENTITY)
         .createdAt(SCAN_CREATED_AT)
         .updatedAt(SCAN_UPDATED_AT)
         .build();
@@ -68,7 +67,7 @@ public class ScanTransformTest {
     private static final org.timekeeper.model.Scan SCAN = org.timekeeper.model.Scan.builder()
         .id(SCAN_ID)
         .userId(USER_ID)
-        .result(ScanResultTransform.apply(SCAN_RESULT_DATABASE))
+        .result(ScanResultTransform.apply(SCAN_RESULT_ENTITY))
         .createdAt(SCAN_CREATED_AT)
         .updatedAt(SCAN_UPDATED_AT)
         .build();
@@ -77,7 +76,7 @@ public class ScanTransformTest {
     public void testApply_withValidInput_shouldSucceed() {
         assertEquals(
             SCAN,
-            ScanTransform.apply(SCAN_DATABASE)
+            ScanTransform.apply(SCAN_ENTITY)
         );
     }
 

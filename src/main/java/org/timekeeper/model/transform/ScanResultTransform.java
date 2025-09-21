@@ -1,14 +1,14 @@
 package org.timekeeper.model.transform;
 
+import org.timekeeper.database.postgresql.model.ScanResultEntity;
 import org.timekeeper.model.ScanResult;
-import org.timekeeper.model.ScanResultStatus;
 
 /**
  * Transforms into the internal ScanResult representation
  */
 public final class ScanResultTransform {
 
-    public static ScanResult apply(org.timekeeper.database.postgresql.model.ScanResult from) {
+    public static ScanResult apply(ScanResultEntity from) {
         return ScanResult.builder()
             .id(from.getId())
             .url(from.getUrl())

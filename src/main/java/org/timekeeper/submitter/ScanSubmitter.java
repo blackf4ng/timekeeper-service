@@ -64,13 +64,6 @@ public class ScanSubmitter {
         HttpStatusCode statusCode = responseEntity.getStatusCode();
         SubmitScanResponse response = responseEntity.getBody();
 
-        if (HttpStatus.TOO_MANY_REQUESTS.equals(statusCode)) {
-            Optional<Instant> resetTime = urlScanClient.getThrottleReset(responseEntity);
-            log.info("Throttled by client; pausing until throttle window resets: resetTime={}", resetTime);
-
-            return resetTime;
-        }
-
         if (HttpStatus.OK.equals(statusCode)) {
             scanService.updateScanResult(
                 scanResult.getId(),
@@ -81,6 +74,13 @@ public class ScanSubmitter {
             );
 
             return Optional.empty();
+        }
+
+        if (HttpStatus.TOO_MANY_REQUESTS.equals(statusCode)) {
+            Optional<Instant> resetTime = urlScanClient.getThrottleReset(responseEntity);
+            log.info("Throttled by client; pausing until throttle window resets: resetTime={}", resetTime);
+
+            return resetTime;
         }
 
         if (statusCode.is4xxClientError()) {

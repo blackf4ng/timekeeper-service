@@ -5,15 +5,16 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.repository.PagingAndSortingRepository;
-import org.timekeeper.database.postgresql.model.ScanResult;
+import org.timekeeper.database.postgresql.model.ScanResultEntity;
 import org.timekeeper.model.ScanResultStatus;
 
+import java.time.Instant;
 import java.util.Optional;
 
-public interface ScanResultRepository extends JpaRepository<ScanResult, Long>, PagingAndSortingRepository<ScanResult, Long> {
+public interface ScanResultRepository extends JpaRepository<ScanResultEntity, Long>, PagingAndSortingRepository<ScanResultEntity, Long> {
 
-    Optional<ScanResult> findFirstByUrl(String url, Sort sort);
+    Optional<ScanResultEntity> findFirstByUrlAndCreatedAtAfter(String url, Instant createdAt, Sort sort);
 
-    Page<ScanResult> findAllByStatus(ScanResultStatus status, Pageable pageable);
+    Page<ScanResultEntity> findAllByStatus(ScanResultStatus status, Pageable pageable);
 
 }

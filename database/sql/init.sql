@@ -2,7 +2,6 @@ create sequence scan_result_seq start with 1 increment by 50;
 create sequence scan_seq start with 1 increment by 50;
 create table scan (created_at timestamp(6) with time zone, id bigint not null, result_id bigint, updated_at timestamp(6) with time zone, user_id varchar(100) not null, primary key (id));
 create table scan_result (status smallint not null, status_code integer, created_at timestamp(6) with time zone, id bigint not null, updated_at timestamp(6) with time zone, result_url varchar(100), url_scan_id varchar(100), status_description varchar, status_message varchar, url varchar not null, primary key (id));
-create table scan_result_scan (scan_id bigint not null unique, scan_result_id bigint not null);
 create index IDXdjvrc9ovp4smei194tw4xo1t0 on scan (user_id, created_at);
 create index IDX4hfxoargmsoicvmixnern6nnf on scan_result (url, created_at);
 alter table if exists scan add constraint FK5rlw7hlg38uy8rkb8i28p6tdc foreign key (result_id) references scan_result;

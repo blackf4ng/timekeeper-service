@@ -30,7 +30,7 @@ import static org.timekeeper.submitter.ScanSubmitter.PAGE_SIZE;
 import static org.timekeeper.submitter.ScanSubmitter.STATUS;
 
 @ExtendWith(MockitoExtension.class)
-public class ScanSubmitterTest {
+public class ScanEntitySubmitterTest {
 
     private static final Long SCAN_RESULT_ID_1 = 1L;
 

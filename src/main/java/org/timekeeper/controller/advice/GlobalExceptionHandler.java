@@ -1,4 +1,4 @@
-package org.timekeeper.exception.handler;
+package org.timekeeper.controller.advice;
 
 import lombok.Builder;
 import lombok.Value;
@@ -14,7 +14,6 @@ import org.timekeeper.exception.DuplicateRequestException;
 import org.timekeeper.exception.ForbiddenException;
 import org.timekeeper.exception.BadRequestException;
 import org.timekeeper.exception.ResourceNotFoundException;
-import org.timekeeper.exception.ThrottlingException;
 
 @Slf4j
 @ControllerAdvice
@@ -52,14 +51,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
         HttpStatus status = HttpStatus.FORBIDDEN;
         return handle(exception, status.getReasonPhrase(), status);
-    }
-
-    @ExceptionHandler(ThrottlingException.class)
-    public ResponseEntity<ExceptionDetails> handle(ThrottlingException exception, WebRequest request) {
-        log.info("ThrottlingException encountered; translating to external exception: message={}", exception.getMessage());
-
-        HttpStatus status = HttpStatus.TOO_MANY_REQUESTS;
-        return handle(exception, status);
     }
 
     @ExceptionHandler(DuplicateRequestException.class)

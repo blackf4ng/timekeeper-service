@@ -26,9 +26,14 @@ import org.timekeeper.service.ScanService;
 
 import java.util.Optional;
 
+import static org.timekeeper.database.postgresql.repository.Constants.MAX_PAGE_SIZE;
+
+/**
+ * Controller for servicing REST API calls to the v1/scans endpoint
+ */
 @Slf4j
 @RestController
-@RequestMapping(value = "scans", produces = "application/json")
+@RequestMapping(value = "v1/scans", produces = "application/json")
 @RequiredArgsConstructor
 public class ScanController implements Controller {
 
@@ -38,7 +43,7 @@ public class ScanController implements Controller {
 
     @GetMapping
     @Operation(summary = "Paginated API for listing all scans for the calling user")
-    public Page<ScanSummary> listScans(
+    public Page<ScanSummary> listScanSummaries(
         @AuthenticationPrincipal
         OidcUser user,
         @RequestParam
@@ -51,9 +56,23 @@ public class ScanController implements Controller {
         @RequestParam(defaultValue = "20") Integer pageSize
     ) {
         String userId = getUserId(user);
+        log.info("Listing scan summaries: userId={} status={} page={} pageSize={}", userId, status, page, pageSize);
+        if(page < 0) {
+            throw new BadRequestException(
+                String.format(
+                    "Page number must be >= 0: page=%s", page)
+            );
+        }
+        if(pageSize <= 0) {
+            throw new BadRequestException(
+                String.format(
+                    "Page size must be > 0: pageSize=%s", pageSize)
+            );
+        }
+
         PageRequest pageRequest = PageRequest.builder()
             .page(page)
-            .pageSize(pageSize)
+            .pageSize(Math.min(pageSize, MAX_PAGE_SIZE))
             .build();
         log.info("Listing scan summaries: userId={} status={} pageRequest={}", userId, status, pageRequest);
 
@@ -77,7 +96,10 @@ public class ScanController implements Controller {
     }
 
     @PostMapping
-    @Operation(summary = "Creates a scan for the provided URL")
+    @Operation(
+        summary = "Creates a scan for the provided URL",
+        description = "Input URL must be of a valid URL format"
+    )
     public Scan createScan(
         @AuthenticationPrincipal OidcUser user,
         @RequestBody CreateScanRequest request

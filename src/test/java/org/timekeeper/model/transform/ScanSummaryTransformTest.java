@@ -3,7 +3,8 @@ package org.timekeeper.model.transform;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.timekeeper.database.postgresql.model.Scan;
+import org.timekeeper.database.postgresql.model.ScanEntity;
+import org.timekeeper.database.postgresql.model.ScanResultEntity;
 import org.timekeeper.model.ScanResult;
 import org.timekeeper.model.ScanResultStatus;
 import org.timekeeper.model.ScanSummary;
@@ -44,7 +45,7 @@ public class ScanSummaryTransformTest {
 
     private static final Instant SCAN_UPDATED_AT = RESULT_CREATED_AT.plus(3, ChronoUnit.DAYS);
 
-    private static final org.timekeeper.database.postgresql.model.ScanResult SCAN_RESULT_DATABASE = org.timekeeper.database.postgresql.model.ScanResult.builder()
+    private static final ScanResultEntity SCAN_RESULT_ENTITY = ScanResultEntity.builder()
         .id(SCAN_RESULT_ID)
         .url(URL)
         .status(STATUS)
@@ -57,10 +58,10 @@ public class ScanSummaryTransformTest {
         .updatedAt(RESULT_UPDATED_AT)
         .build();
 
-    private static final Scan SCAN_DATABASE = Scan.builder()
+    private static final ScanEntity SCAN_ENTITY = ScanEntity.builder()
         .id(SCAN_ID)
         .userId(USER_ID)
-        .result(SCAN_RESULT_DATABASE)
+        .result(SCAN_RESULT_ENTITY)
         .createdAt(SCAN_CREATED_AT)
         .updatedAt(SCAN_UPDATED_AT)
         .build();
@@ -83,7 +84,7 @@ public class ScanSummaryTransformTest {
     public void testApply_withFailedStatus_includesStatusDetails() {
         assertEquals(
             SCAN_SUMMARY,
-            ScanSummaryTransform.apply(SCAN_DATABASE)
+            ScanSummaryTransform.apply(SCAN_ENTITY)
         );
     }
 
@@ -97,9 +98,9 @@ public class ScanSummaryTransformTest {
                 .statusDetails(null)
                 .build(),
             ScanSummaryTransform.apply(
-                SCAN_DATABASE.toBuilder()
+                SCAN_ENTITY.toBuilder()
                     .result(
-                        SCAN_RESULT_DATABASE.toBuilder()
+                        SCAN_RESULT_ENTITY.toBuilder()
                             .status(status)
                             .build()
                     ).build()

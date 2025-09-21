@@ -26,10 +26,11 @@ import java.time.Instant;
 @AllArgsConstructor
 @Builder(toBuilder = true)
 @Table(
+    name = "scan",
     indexes = {
         @Index(columnList = "userId,createdAt"),
     })
-public class Scan {
+public class ScanEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -46,7 +47,7 @@ public class Scan {
             CascadeType.PERSIST,
         }
     )
-    private ScanResult result;
+    private ScanResultEntity result;
 
     @CreationTimestamp
     private Instant createdAt;

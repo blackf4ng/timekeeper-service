@@ -1,5 +1,6 @@
 package org.timekeeper.model.transform;
 
+import org.timekeeper.database.postgresql.model.ScanResultEntity;
 import org.timekeeper.model.ScanResult;
 import org.timekeeper.model.ScanResultStatus;
 
@@ -10,7 +11,7 @@ import java.util.Optional;
  */
 public final class ScanResultStatusDetailsTransform {
 
-    public static Optional<ScanResult.StatusDetails> apply(org.timekeeper.database.postgresql.model.ScanResult from) {
+    public static Optional<ScanResult.StatusDetails> apply(ScanResultEntity from) {
         if (ScanResultStatus.FAILED.equals(from.getStatus())) {
             return Optional.of(
                 ScanResult.StatusDetails.builder()

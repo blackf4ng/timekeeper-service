@@ -4,9 +4,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.timekeeper.database.postgresql.dal.ScanDal;
-import org.timekeeper.database.postgresql.dal.ScanResultDal;
+import org.timekeeper.database.postgresql.model.ScanEntity;
+import org.timekeeper.database.postgresql.model.ScanResultEntity;
 import org.timekeeper.database.postgresql.model.transform.PageRequestTransform;
+import org.timekeeper.database.postgresql.repository.ScanRepository;
+import org.timekeeper.database.postgresql.repository.ScanResultRepository;
 import org.timekeeper.exception.DuplicateRequestException;
 import org.timekeeper.exception.ResourceNotFoundException;
 import org.timekeeper.model.Page;
@@ -25,6 +27,9 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
+import static org.timekeeper.database.postgresql.repository.Constants.DEFAULT_REVERSE_SORT;
+import static org.timekeeper.database.postgresql.repository.Constants.DEFAULT_SORT;
+
 /**
  * Service layer responsible for handling business logic related to scans
  */
@@ -33,13 +38,13 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ScanService {
 
-    private static final Integer SCAN_DEDUPE_DAYS = 1;
+    protected static final Integer SCAN_DEDUPE_DAYS = 1;
 
     private final Clock clock;
 
-    private final ScanDal scanDal;
+    private final ScanRepository scanRepository;
 
-    private final ScanResultDal scanResultDal;
+    private final ScanResultRepository scanResultRepository;
 
     /**
      * Creates a scan for the given user with the requested URL.
@@ -58,9 +63,9 @@ public class ScanService {
     ) {
         Instant now = clock.instant();
         Instant dedupeCutoff = now.minus(SCAN_DEDUPE_DAYS, ChronoUnit.DAYS);
+        log.info("Creating scan: userId={} url={} dedupeCutoff={}", userId, url, dedupeCutoff);
         // If the user has already submitted a scan request with the same URL, throw a duplicate request exception
-        scanDal.getLatestScanOptional(userId, url)
-            .filter(scan -> dedupeCutoff.isBefore(scan.getCreatedAt()))
+        scanRepository.findFirstByUserIdAndResult_UrlAndCreatedAtAfter(userId, url, dedupeCutoff, DEFAULT_SORT)
             .ifPresent(scan -> {
                 throw new DuplicateRequestException(
                     String.format(
@@ -68,17 +73,36 @@ public class ScanService {
                     )
                 );
             });
-        // If there was a scan that was submitted within the dedupe window across users, use that result
-        Optional<org.timekeeper.database.postgresql.model.ScanResult> scanResultOptional = scanResultDal.getLatestScanResultOptional(url)
-            .filter(result -> dedupeCutoff.isBefore(result.getCreatedAt()));
-        if (scanResultOptional.isPresent()) {
-            org.timekeeper.database.postgresql.model.ScanResult scanResult = scanResultOptional.get();
-            log.info("Existing scan result within deduplication window was found; using instead : result={} dedupeCutoff={}", scanResult, dedupeCutoff);
+        // If there is a scan result that was submitted within the dedupe window across users, use that result
+        Optional<ScanResultEntity> scanResultEntityOptional = scanResultRepository
+            .findFirstByUrlAndCreatedAtAfter(url, dedupeCutoff, DEFAULT_SORT);
+        if (scanResultEntityOptional.isPresent()) {
+            ScanResultEntity scanResultEntity = scanResultEntityOptional.get();
+            log.info("Existing scan result within deduplication window was found; using instead of creating new result: result={} dedupeCutoff={}", scanResultEntity, dedupeCutoff);
 
-            return ScanTransform.apply(scanDal.createScan(userId, scanResult));
+            ScanEntity scanEntity = scanRepository.save(
+                ScanEntity.builder()
+                    .userId(userId)
+                    .result(scanResultEntity)
+                    .build()
+            );
+            log.info("Successfully created scan: scanEntity={}", scanEntity);
+
+            return ScanTransform.apply(scanEntity);
         }
 
-        return ScanTransform.apply(scanDal.createScan(userId, url));
+        ScanEntity scanEntity = scanRepository.save(
+            ScanEntity.builder()
+                .userId(userId)
+                .result(
+                    ScanResultEntity.builder()
+                        .url(url)
+                        .build()
+                ).build()
+        );
+        log.info("Successfully created scan: scanEntity={}", scanEntity);
+
+        return ScanTransform.apply(scanEntity);
     }
 
     /**
@@ -90,12 +114,12 @@ public class ScanService {
      * @throws ResourceNotFoundException if either the user does not have access to the scan or the scan does not exist. In the interest of security,
      *                                   a single ResourceNotFoundException is thrown instead of distinguishing between the scan existing and the user not being authorized to view it
      */
-    public Scan getScan(
-        String userId,
-        Long scanId
-    ) {
-        return scanDal.getScanOptional(scanId)
-            .filter(scan -> userId.equals(scan.getUserId()))
+    public Scan getScan(String userId, Long scanId) {
+        log.info("Retrieving scan: userId={} scanId={}", userId, scanId);
+
+        Optional<ScanEntity> scanEntityOptional = scanRepository.findByIdAndUserId(scanId, userId);
+        log.info("Retrieved scan: userId={} scanId={} scanEntity={}", userId, scanId, scanEntityOptional);
+        return scanEntityOptional
             .map(ScanTransform::apply)
             .orElseThrow(() ->
                 new ResourceNotFoundException(
@@ -109,17 +133,26 @@ public class ScanService {
      *
      * @param userId         The ID of the user that scans are to be retrieved for
      * @param statusOptional An optional status to filter the results for
-     * @return A paginated list of scans meeting the filter criteria sorted in descending order of when the scan was created
+     * @param pageRequest    the pagination scheme to use
+     * @return A page of scans meeting the filter criteria sorted in descending order of when the scan was created
      */
     public Page<ScanSummary> listScanSummaries(
         String userId,
         Optional<ScanResultStatus> statusOptional,
         PageRequest pageRequest
     ) {
+        log.info("Listing scan summaries: userId={} status={} pageRequest={}", userId, statusOptional, pageRequest);
+
+        org.springframework.data.domain.PageRequest sortedPageRequest = PageRequestTransform.apply(pageRequest)
+            .withSort(DEFAULT_SORT);
+
+        org.springframework.data.domain.Page<ScanEntity> scanEntityPage = statusOptional
+            .map(status -> scanRepository.findAllByUserIdAndResult_Status(userId, status, sortedPageRequest))
+            .orElseGet(() -> scanRepository.findAllByUserId(userId, sortedPageRequest));
+
+        log.info("Successfully listed scan summaries: userId={} status={} pageRequest={} scanEntityPage={}", userId, statusOptional, pageRequest, scanEntityPage);
         return PageTransform.apply(
-            statusOptional
-                .map(status -> scanDal.listScans(userId, status, PageRequestTransform.apply(pageRequest)))
-                .orElseGet(() -> scanDal.listScans(userId, PageRequestTransform.apply(pageRequest))),
+            scanEntityPage,
             ScanSummaryTransform::apply
         );
     }
@@ -134,8 +167,15 @@ public class ScanService {
      * @param scanId The ID of the requested scan
      */
     public void deleteScan(String userId, Long scanId) {
-        scanDal.getScanOptional(userId, scanId)
-            .ifPresent(scan -> scanDal.deleteScan(scan.getId()));
+        log.info("Deleting scan: userId={} scanId={}", userId, scanId);
+        scanRepository.findByIdAndUserId(scanId, userId)
+            .ifPresentOrElse(scan -> {
+                    scanRepository.deleteById(scan.getId());
+
+                    log.info("Successfully deleted scan: userId={} scanId={}", userId, scanId);
+                },
+                () -> log.info("Scan not found; ignoring: userId={} scanId={}", userId, scanId)
+            );
     }
 
     /**
@@ -155,24 +195,45 @@ public class ScanService {
         Optional<String> resultUrl
     ) {
         log.info("Updating scan result: scanResultId={} status={} urlScanId={} resultUrl={}", scanResultId, status, urlScanId, resultUrl);
-        org.timekeeper.database.postgresql.model.ScanResult scanResult = scanResultDal.getScanResultOptional(scanResultId)
+        ScanResultEntity previousScanResultEntity = scanResultRepository.findById(scanResultId)
             .orElseThrow(() ->
                 new ResourceNotFoundException(
                     String.format("Scan result not found: scanResultId=%s", scanResultId)
                 )
             );
 
-        return ScanResultTransform.apply(
-            scanResultDal.updateScanResult(scanResult, status, statusDetails, urlScanId, resultUrl)
+        ScanResultEntity.ScanResultEntityBuilder newScanResultEntityBuilder = previousScanResultEntity.toBuilder();
+        newScanResultEntityBuilder.status(status);
+        urlScanId.ifPresent(newScanResultEntityBuilder::urlScanId);
+        resultUrl.ifPresent(newScanResultEntityBuilder::resultUrl);
+        statusDetails.ifPresent(details -> {
+                newScanResultEntityBuilder.statusCode(details.getCode());
+                newScanResultEntityBuilder.statusDescription(details.getDescription());
+                newScanResultEntityBuilder.statusMessage(details.getMessage());
+            }
         );
+
+        ScanResultEntity newscanResultEntity = scanResultRepository.save(newScanResultEntityBuilder.build());
+        log.info("Successfully updated scan result: scanResultId={} scanResultEntity={}", scanResultId, newscanResultEntity);
+        return ScanResultTransform.apply(newscanResultEntity);
     }
 
+    /**
+     * Lists all scan results with a given status sorted in ascending order of when the scan result was created.
+     *
+     * @param status      the status of scan results to filter on
+     * @param pageRequest the pagination scheme to use
+     * @return A page of scan results meeting the filter criteria sorted in ascending order of when the scan result was created
+     */
     public Page<ScanResult> listScanResults(
         ScanResultStatus status,
         PageRequest pageRequest
     ) {
         return PageTransform.apply(
-            scanResultDal.listScanResults(status, PageRequestTransform.apply(pageRequest)),
+            scanResultRepository.findAllByStatus(
+                status,
+                PageRequestTransform.apply(pageRequest).withSort(DEFAULT_REVERSE_SORT)
+            ),
             ScanResultTransform::apply
         );
     }

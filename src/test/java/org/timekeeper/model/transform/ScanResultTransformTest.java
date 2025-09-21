@@ -3,6 +3,7 @@ package org.timekeeper.model.transform;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.timekeeper.database.postgresql.model.ScanResultEntity;
 import org.timekeeper.model.ScanResult;
 import org.timekeeper.model.ScanResultStatus;
 
@@ -34,7 +35,7 @@ public class ScanResultTransformTest {
 
     private static final Instant UPDATED_AT = CREATED_AT.plus(1, ChronoUnit.DAYS);
 
-    private static final org.timekeeper.database.postgresql.model.ScanResult SCAN_RESULT_DATABASE = org.timekeeper.database.postgresql.model.ScanResult.builder()
+    private static final ScanResultEntity SCAN_RESULT_ENTITY = ScanResultEntity.builder()
         .id(ID)
         .url(URL)
         .status(STATUS)
@@ -67,7 +68,7 @@ public class ScanResultTransformTest {
     public void testApply_withFailedStatus_includesStatusDetails() {
         assertEquals(
             SCAN_RESULT,
-            ScanResultTransform.apply(SCAN_RESULT_DATABASE)
+            ScanResultTransform.apply(SCAN_RESULT_ENTITY)
         );
     }
 
@@ -81,7 +82,7 @@ public class ScanResultTransformTest {
                 .statusDetails(null)
                 .build(),
             ScanResultTransform.apply(
-                SCAN_RESULT_DATABASE.toBuilder()
+                SCAN_RESULT_ENTITY.toBuilder()
                     .status(status)
                     .build()
             )

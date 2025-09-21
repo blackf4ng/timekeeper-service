@@ -43,7 +43,7 @@ public class StatusPollerConfig implements SchedulingConfigurer {
                 @Override
                 public Instant nextExecution(TriggerContext triggerContext) {
                     return Optional.ofNullable(triggerContext.lastActualExecution())
-                        .map(time -> time.plus(1, ChronoUnit.MINUTES))
+                        .map(time -> time.plus(10, ChronoUnit.SECONDS))
                         .orElseGet(() -> clock.instant());
                 }
             }
