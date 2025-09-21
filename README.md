@@ -104,6 +104,8 @@ protocols through the Authorization header of requests*
 
 # Design
 
+![System Diagram](image/system.png)
+
 The URL Scan Service is composed of 3 separate components:
 
 * API Server: A REST API service for performing CRUD operations against URL scans
