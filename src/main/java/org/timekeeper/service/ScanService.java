@@ -23,6 +23,7 @@ import org.timekeeper.model.transform.ScanSummaryTransform;
 import org.timekeeper.model.transform.ScanTransform;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
@@ -38,7 +39,7 @@ import static org.timekeeper.database.postgresql.repository.Constants.DEFAULT_SO
 @RequiredArgsConstructor
 public class ScanService {
 
-    protected static final Integer SCAN_DEDUPE_DAYS = 1;
+    protected static final Duration SCAN_DEDUPE_DURATION = Duration.of(1, ChronoUnit.HOURS);
 
     private final Clock clock;
 
@@ -62,7 +63,7 @@ public class ScanService {
         String url
     ) {
         Instant now = clock.instant();
-        Instant dedupeCutoff = now.minus(SCAN_DEDUPE_DAYS, ChronoUnit.DAYS);
+        Instant dedupeCutoff = now.minus(SCAN_DEDUPE_DURATION);
         log.info("Creating scan: userId={} url={} dedupeCutoff={}", userId, url, dedupeCutoff);
         // If the user has already submitted a scan request with the same URL, throw a duplicate request exception
         scanRepository.findFirstByUserIdAndResult_UrlAndCreatedAtAfter(userId, url, dedupeCutoff, DEFAULT_SORT)

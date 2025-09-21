@@ -37,7 +37,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.timekeeper.database.postgresql.repository.Constants.DEFAULT_REVERSE_SORT;
 import static org.timekeeper.database.postgresql.repository.Constants.DEFAULT_SORT;
-import static org.timekeeper.service.ScanService.SCAN_DEDUPE_DAYS;
+import static org.timekeeper.service.ScanService.SCAN_DEDUPE_DURATION;
 
 @ExtendWith(MockitoExtension.class)
 public class ScanServiceTest {
@@ -64,7 +64,7 @@ public class ScanServiceTest {
 
     private static final Instant NOW = Instant.now();
 
-    private static final Instant DEDUPE_CUTOFF = NOW.minus(SCAN_DEDUPE_DAYS, ChronoUnit.DAYS);
+    private static final Instant DEDUPE_CUTOFF = NOW.minus(SCAN_DEDUPE_DURATION);
 
     private static final Instant RESULT_CREATED_AT = NOW.plus(1, ChronoUnit.DAYS);
 
@@ -95,12 +95,6 @@ public class ScanServiceTest {
         .result(SCAN_RESULT_ENTITY)
         .createdAt(SCAN_CREATED_AT)
         .updatedAt(SCAN_UPDATED_AT)
-        .build();
-
-    private static final ScanResult.StatusDetails SCAN_RESULT_STATUS_DETAILS = ScanResult.StatusDetails.builder()
-        .code(STATUS_CODE)
-        .message(STATUS_MESSAGE)
-        .description(STATUS_DESCRIPTION)
         .build();
 
     private static final ScanResult SCAN_RESULT = ScanResult.builder()
