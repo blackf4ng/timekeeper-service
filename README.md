@@ -82,8 +82,7 @@ The UI can be leveraged to send requests and receive responses by expanding each
 
 ### Unit Testing
 
-Unit tests run at build time and both line and branch coverage is required to be at least 80% in order to pass. GitHub
-also has a workflow set up for pull requests that run unit tests as an approval step before merges can occur.
+Unit tests run at build time and both line and branch coverage is required to be at least 80% in order to pass.
 
 ### Integration Testing
 

@@ -38,11 +38,14 @@ public class Scan {
     @Column(length = 100, nullable = false)
     private String userId;
 
+    @ToString.Exclude
     @ManyToOne(
         fetch = FetchType.LAZY,
-        cascade = CascadeType.DETACH
+        cascade = {
+            CascadeType.MERGE,
+            CascadeType.PERSIST,
+        }
     )
-    @ToString.Exclude
     private ScanResult result;
 
     @CreationTimestamp

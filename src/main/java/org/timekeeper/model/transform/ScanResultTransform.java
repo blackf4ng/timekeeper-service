@@ -1,10 +1,10 @@
 package org.timekeeper.model.transform;
 
-import org.timekeeper.model.Scan;
 import org.timekeeper.model.ScanResult;
+import org.timekeeper.model.ScanResultStatus;
 
 /**
- * Transforms into the internal Scan representation
+ * Transforms into the internal ScanResult representation
  */
 public final class ScanResultTransform {
 
@@ -12,7 +12,10 @@ public final class ScanResultTransform {
         return ScanResult.builder()
             .id(from.getId())
             .url(from.getUrl())
+            .urlScanId(from.getUrlScanId())
+            .resultUrl(from.getResultUrl())
             .status(from.getStatus())
+            .statusDetails(ScanResultStatusDetailsTransform.apply(from).orElse(null))
             .createdAt(from.getCreatedAt())
             .updatedAt(from.getUpdatedAt())
             .build();

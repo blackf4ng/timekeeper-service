@@ -11,7 +11,6 @@ public final class ScanTransform {
         return Scan.builder()
             .id(from.getId())
             .userId(from.getUserId())
-            .url(from.getResult().getUrl())
             .result(ScanResultTransform.apply(from.getResult()))
             .createdAt(from.getCreatedAt())
             .updatedAt(from.getUpdatedAt())

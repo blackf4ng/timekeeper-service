@@ -5,12 +5,15 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.timekeeper.configuration.client.UrlScanClientConfig;
 
 import java.util.Optional;
 
 @Slf4j
 @SpringBootApplication
+//@EnableConfigurationProperties(UrlScanClientConfig.class)
 @EnableJpaRepositories(basePackages = "org.timekeeper.database.postgresql.repository")
 public class TimekeeperApplication {
 
@@ -27,21 +30,21 @@ public class TimekeeperApplication {
             .map(Application::valueOf)
             .orElse(Application.API_SERVER);
 
-		log.info("Starting application: application={}", application);
-		switch (application) {
-			case STATUS_POLLER, SCAN_REQUESTER:
-				new SpringApplicationBuilder(TimekeeperApplication.class)
-					.web(WebApplicationType.NONE)
-					.build();
-				break;
-			case API_SERVER:
-				SpringApplication.run(TimekeeperApplication.class, args);
-				break;
-			default:
-				throw new IllegalArgumentException(
-					String.format("Unknown application; unable to start: application=%s", application)
-				);
-		}
+        log.info("Starting application: application={}", application);
+        switch (application) {
+            case STATUS_POLLER, SCAN_REQUESTER:
+                new SpringApplicationBuilder(TimekeeperApplication.class)
+                    .web(WebApplicationType.NONE)
+                    .run(args);
+                break;
+            case API_SERVER:
+                SpringApplication.run(TimekeeperApplication.class, args);
+                break;
+            default:
+                throw new IllegalArgumentException(
+                    String.format("Unknown application; unable to start: application=%s", application)
+                );
+        }
     }
 
 }

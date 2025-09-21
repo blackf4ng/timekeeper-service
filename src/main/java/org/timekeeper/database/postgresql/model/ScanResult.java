@@ -37,19 +37,27 @@ public class ScanResult {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    @OneToMany(
-        fetch = FetchType.LAZY,
-        cascade = CascadeType.DETACH
-    )
-    @ToString.Exclude
-    private List<Scan> scan;
-
-    @Column(length = 256, nullable = false)
+    @Column(nullable = false)
     private String url;
+
+    @Column(length = 100)
+    private String urlScanId;
+
+    @Column(length = 100)
+    private String resultUrl;
 
     @Builder.Default
     @Column(length = 25, nullable = false)
     private ScanResultStatus status = ScanResultStatus.SUBMITTED;
+
+    @Column
+    private Integer statusCode;
+
+    @Column
+    private String statusMessage;
+
+    @Column
+    private String statusDescription;
 
     @CreationTimestamp
     private Instant createdAt;

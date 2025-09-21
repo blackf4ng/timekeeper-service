@@ -16,6 +16,6 @@ public interface ScanRepository extends JpaRepository<Scan, Long>, PagingAndSort
 
     Page<Scan> findAllByUserIdAndResult_Status(String userId, ScanResultStatus status, Pageable pageable);
 
-    Optional<Scan> findFirstByResult_Url(String url, Sort sort);
+    Optional<Scan> findFirstByUserIdAndResult_Url(String userId, String url, Sort sort);
 
 }

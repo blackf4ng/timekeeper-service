@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import org.timekeeper.exception.DuplicateRequestException;
 import org.timekeeper.exception.ForbiddenException;
 import org.timekeeper.exception.BadRequestException;
 import org.timekeeper.exception.ResourceNotFoundException;
@@ -58,6 +59,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         log.info("ThrottlingException encountered; translating to external exception: message={}", exception.getMessage());
 
         HttpStatus status = HttpStatus.TOO_MANY_REQUESTS;
+        return handle(exception, status);
+    }
+
+    @ExceptionHandler(DuplicateRequestException.class)
+    public ResponseEntity<ExceptionDetails> handle(DuplicateRequestException exception, WebRequest request) {
+        log.info("DuplicateRequestException encountered; translating to external exception: message={}", exception.getMessage());
+
+        HttpStatus status = HttpStatus.TOO_EARLY;
         return handle(exception, status);
     }
 

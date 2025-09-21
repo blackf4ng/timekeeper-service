@@ -4,6 +4,7 @@ public enum ScanResultStatus {
 
     SUBMITTED,
     PROCESSING,
+    FAILED,
     DONE,
 
 }

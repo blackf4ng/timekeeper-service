@@ -9,20 +9,25 @@ import org.springframework.scheduling.TriggerContext;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
-import org.timekeeper.poller.ScanStatusPoller;
-import org.timekeeper.service.ScanService;
+import org.timekeeper.poller.ScanRequester;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 @Configuration
 @EnableScheduling
-@ConditionalOnProperty(value = "application", havingValue = "STATUS_POLLER")
-public class StatusPollerConfiguration implements SchedulingConfigurer {
+@ConditionalOnProperty(prefix = "application", name = "name", havingValue = "SCAN_REQUESTER")
+public class ScanRequesterConfig implements SchedulingConfigurer {
 
     @Autowired
-    private ScanService scanService;
+    ScanRequester scanRequester;
+
+    @Autowired
+    Clock clock;
 
     @Bean
     public Executor taskExecutor() {
@@ -31,15 +36,15 @@ public class StatusPollerConfiguration implements SchedulingConfigurer {
 
     @Override
     public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
-        ScanStatusPoller scanStatusPoller = new ScanStatusPoller(scanService);
-
         taskRegistrar.setScheduler(taskExecutor());
         taskRegistrar.addTriggerTask(
-            scanStatusPoller::poll,
+            scanRequester::request,
             new Trigger() {
                 @Override
                 public Instant nextExecution(TriggerContext triggerContext) {
-                    return null;
+                    return Optional.ofNullable(triggerContext.lastActualExecution())
+                        .map(time -> time.plus(1, ChronoUnit.MINUTES))
+                        .orElseGet(() -> clock.instant());
                 }
             }
         );

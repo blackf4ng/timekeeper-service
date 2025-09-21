@@ -1,6 +1,5 @@
 package org.timekeeper.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Builder;
 import lombok.Value;
 
@@ -8,14 +7,15 @@ import java.time.Instant;
 
 @Value
 @Builder(toBuilder = true)
-public class Scan {
+public class ScanSummary {
 
     Long id;
 
-    @JsonIgnore
-    String userId;
+    String url;
 
-    ScanResult result;
+    ScanResultStatus status;
+
+    ScanResult.StatusDetails statusDetails;
 
     Instant createdAt;
 

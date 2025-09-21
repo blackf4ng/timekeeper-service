@@ -16,8 +16,6 @@ spring:
             scripts:
               action: create
               create-target: ./database/create.sql
-    hibernate:
-      ddl-auto: update
 
 okta:
   oauth2:
@@ -26,4 +24,9 @@ okta:
     client-secret: SFJt4tZ3MusLoIP33_MU0PErbeiXbaFQ2NCTXcU0nxyx28gSpwLZ2hgoZUX7m-5C
 
 urlscan:
+  url: https://urlscan.io/api/v1
   apiKey: 0199602b-b5b3-7568-b2c7-56e02906529c
+  apiKeyHeader: API-Key
+
+application:
+  name: ${APPLICATION:API_SERVER}

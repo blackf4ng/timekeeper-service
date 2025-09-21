@@ -2,7 +2,6 @@ package org.timekeeper.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.validator.routines.UrlValidator;
@@ -19,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.timekeeper.model.Page;
 import org.timekeeper.model.Scan;
 import org.timekeeper.model.ScanResultStatus;
+import org.timekeeper.model.ScanSummary;
 import org.timekeeper.model.request.CreateScanRequest;
 import org.timekeeper.model.request.PageRequest;
 import org.timekeeper.exception.BadRequestException;
@@ -38,27 +38,26 @@ public class ScanController implements Controller {
 
     @GetMapping
     @Operation(summary = "Paginated API for listing all scans for the calling user")
-    public Page<Scan> listScans(
+    public Page<ScanSummary> listScans(
         @AuthenticationPrincipal
         OidcUser user,
         @RequestParam
         @Parameter(description = "Status of scans to filter on; not providing a status will return all statuses")
         Optional<ScanResultStatus> status,
-        @Size
         @RequestParam(defaultValue = "0")
         @Parameter(description = "0-indexed page offset for pagination")
         Integer page,
         @Parameter(description = "Number of items to query per page")
-        @Size(min = 1, max = 20) @RequestParam(defaultValue = "20") Integer pageSize
+        @RequestParam(defaultValue = "20") Integer pageSize
     ) {
         String userId = getUserId(user);
         PageRequest pageRequest = PageRequest.builder()
             .page(page)
             .pageSize(pageSize)
             .build();
-        log.info("Listing scans: userId={} status={} pageRequest={}", userId, status, pageRequest);
+        log.info("Listing scan summaries: userId={} status={} pageRequest={}", userId, status, pageRequest);
 
-        return scanService.listScans(
+        return scanService.listScanSummaries(
             userId,
             status,
             pageRequest
@@ -97,14 +96,15 @@ public class ScanController implements Controller {
 
     @DeleteMapping("/{scanId}")
     @Operation(summary = "Deletes a scan by ID")
-    public Scan deleteScan(
+    public Void deleteScan(
         @AuthenticationPrincipal OidcUser user,
         @PathVariable Long scanId
     ) {
         String userId = getUserId(user);
         log.info("Deleting scan: userId={} scanId={}", userId, scanId);
 
-        return scanService.deleteScan(userId, scanId);
+        scanService.deleteScan(userId, scanId);
+        return null;
     }
 
 }
