@@ -217,7 +217,7 @@ addressed:
    returned details.
 2. Pagination: Currently pagination is implemented using a page offset. Especially because the query is on the status of
    the scan result which can be updated during processing, this will likely lead to scans being missed. The pagination
-   scheme needs to be updated to provide a token for where to pick the query back up from.
+   scheme needs to be updated to provide a cursor for where to pick the query back up from.
 
 ## Status Poller
 
