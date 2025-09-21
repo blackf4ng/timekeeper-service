@@ -91,7 +91,8 @@ Unit tests run at build time and both line and branch coverage is required to be
 
 Integration tests run against a running service. It ensures the integration points of the service with dependencies (
 Postgres database, urlscan.io) are working as expected. The integration tests are maintained in a
-separate [url-scan-service-tests]() repository. Refer to the README of the repository for executing the tests.
+separate (to be implemented) [url-scan-service-tests]() repository. Refer to the README of the repository for executing
+the tests.
 
 ## Authentication
 
@@ -137,11 +138,75 @@ Data for the service is persisted in a Postgres database that contains 2 tables:
 
 * `scan`: table that contains entries for individual user scan requests, with a foreign key to the `scan_result` which
   contains details on the scan that was requested
-* `scan_result`: table that contains entries for individual scan results
+* `scan_result`: table that contains entries for individual scan requests and results that are sent to urlscan.io
 
 Two tables are used in order to separate the handling of user scan requests, and the scans that are actually issued to
-urlscan.io. This separation allows for simpler deduplication on the scans that are sent to urlscan.io, which reduces load against the service.
+urlscan.io. This separation allows for simpler deduplication on the scans that are sent to urlscan.io, which reduces
+load against the service.
 
 ## Scan Requester
 
+The Scan Requester is an asynchronous worker which runs on a schedule (currently every 10 seconds) to query scan
+requests that have not been sent to urlscan.io, and sends them to urlscan.io.
 
+The worker performs the following steps on every run:
+
+1. (To be implemented) Compare current time against throttle reset time
+    * If throttle reset time does not exist or if current time is on or after the throttle reset time, continue
+    * If current time is before throttle reset time, stop processing
+2. Queries the `scan_result` table for a page of scan results with a `SUBMITTED` status sorted in ascending order by
+   when the entity was created at, and issues a `POST /scan` request for the URL to urlscan.io
+3. Depending on the response from urlscan.io:
+    * If request was successful (200 Status Code), save the returned reference ID and result URL and update result
+      status to `PROCESSING`
+    * If request was throttled (429 Status Code), save the time when the throttle is to reset and terminate processing
+      of remaining requests for this run
+    * If request was rejected as a client-side error (remaining 4xx), save the returned error details and update result
+      status to
+      `FAILED`
+    * If request acceptance was indeterminate (remaining status codes), do not update the entity and wait to retry on
+      the next run
+4. Repeat from 2. until there are no more pending results to submit
+
+### Error Handling
+
+While the above steps outline a general approach to error handling, there are several gaps that still need to be
+addressed:
+
+1. Unknown status codes: unknown status codes currently can result in infinite retries, which poses a problem for the
+   system especially when multiple scans terminate in this state. There needs to be monitoring on the number of retries
+   that occurred in this way, and perhaps a setting to the failed state after a certain number of retries with the
+   returned details.
+2. Pagination: Currently pagination is implemented using a page offset. Especially because the query is on the status of
+   the scan result which can be updated during processing, this will likely lead to scans being missed. The pagination
+   scheme needs to be updated to provide a token for where to pick the query back up from.
+
+## Status Poller
+
+The Status Poller is an asynchronous worker which runs on a schedule (currently every 10 seconds) to query scan
+requests that have been successfully submitted to urlscan.io, and checks if the results are ready.
+
+The worker performs the following steps on every run:
+
+1. (To be implemented) Compare current time against throttle reset time
+    * If throttle reset time does not exist or if current time is on or after the throttle reset time, continue
+    * If current time is before throttle reset time, stop processing
+2. Queries the `scan_result` table for a page of scan results with a `PROCESSING` status sorted in ascending order by
+   when the entity was created at, and issues a `GET /results/{scanId}` request for the status of a scan result to
+   urlscan.io
+3. Depending on the response from urlscan.io:
+    * If request was successful (200 Status Code), update result status to `DONE`
+    * If request was throttled (429 Status Code), save the time when the throttle is to reset and terminate processing
+      of remaining requests for this run
+    * If request is still processing (404 Status Code with message `Scan is not finished yet`), do not update the entity
+      and retry on the next run
+    * If request was rejected as a client-side error (remaining 4xx), save the returned error details and update result
+      status to `FAILED`
+    * If request acceptance was indeterminate (remaining status codes), do not update the entity and wait to retry on
+      the next run
+4. Repeat from 2. until there are no more pending results to submit
+
+### Error Handling
+
+As the Status Poller performs a similar workflow to the Scan Requester, it also contains the shortfalls in error
+handling found in the earlier section.
