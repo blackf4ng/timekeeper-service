@@ -85,7 +85,7 @@ To log out, navigate to http://localhost/logout.
 
 ### Unit Testing
 
-Unit tests run at build time and both line and branch coverage is required to be at least 80% in order to pass.
+Unit tests run at build time and both line and branch coverage is required to be at least (to be implemented) 80% in order to pass.
 
 ### Integration Testing
 
@@ -119,6 +119,8 @@ For example:
   scale to handle the increased load
 * In the event that the status poller is to process scan results (which tend to be large), it can scale independently of
   the API server or the scan submitter
+* In the event that clients are not sensitive to latency and can wait for an extended time to receive scan result, the
+  API server can have more relaxed throttles against clients than what urlscan.io can provide
 
 ## API Server
 
@@ -133,6 +135,40 @@ APIs require authentication, which is managed
 through [an Auth0 application](https://manage.auth0.com/dashboard/us/dev-bglprge8mcc8yj82/applications/7s16iwyxHFmiZO7CJeRYmaFMTqB7nP4I/settings).
 Users are only allowed to view and manage their own scans, but can be returned scan results from a prior scan with
 the same parameters if submitted within a given dedupe window (currently 1 hour).
+
+The service exposes a Swagger UI, which can be used to issue requests against endpoints manually. The UI shows all
+available endpoints, model types, documentation, and sample request/responses that are used in the APIs.
+
+### Exception Handling
+
+Exceptions that occur in the API service are modeled as internal exceptions, then translated via a global interceptor
+into external exceptions. Once translated, external exceptions will specify the type of the internal exception that
+caused the error, and a message (if not sensitive) which provides details on the error.
+The following list includes all external status codes and the internal exceptions that are translated into them:
+
+* 404 Not Found
+    * ResourceNotFoundException
+* 425 Too Early
+    * DuplicateRequestException
+* 400 Bad Request
+    * BadRequestException
+
+Untranslated internal exceptions result in a 500 Internal Server Error to clients without error details.
+
+### Throttling
+
+Currently, throttling has not been implemented on the API Server. However, it is good practice to implement global and
+per-client
+throttles against APIs based on the capacity of the server itself and any dependencies (ex: Postgres).
+
+Because the API server does not interact with urlscan.io directly, its throttle limits should be based on the connection
+capacity of the server and the throughput of Postgres.
+
+Backpressure, however, is very important in this case to ensure scans are fulfilled in a reasonable time and that the
+backlog does not expand indefinitely. For applying backpressure, the depth of scan queue both globally and per-user
+should be measured, and throttling should be applied when the backlog gets sufficiently large.
+
+### Database
 
 Data for the service is persisted in a Postgres database that contains 2 tables:
 

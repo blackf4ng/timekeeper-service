@@ -7,7 +7,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.timekeeper.exception.BadRequestException;
 import org.timekeeper.exception.DuplicateRequestException;
-import org.timekeeper.exception.ForbiddenException;
 import org.timekeeper.exception.ResourceNotFoundException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -62,23 +61,6 @@ public class GlobalExceptionHandlerTest {
                 .message(EXCEPTION_MESSAGE)
                 .build(),
             HttpStatus.TOO_EARLY
-        );
-
-        assertEquals(
-            expected,
-            HANDLER.handle(exception, null)
-        );
-    }
-
-    @Test
-    public void testHandle_witForbiddenException_returnsForbiddenStatusWithDefaultMessage() {
-        ForbiddenException exception = new ForbiddenException(EXCEPTION_MESSAGE);
-        ResponseEntity<GlobalExceptionHandler.ExceptionDetails> expected = new ResponseEntity<>(
-            GlobalExceptionHandler.ExceptionDetails.builder()
-                .type(ForbiddenException.class)
-                .message(HttpStatus.FORBIDDEN.getReasonPhrase())
-                .build(),
-            HttpStatus.FORBIDDEN
         );
 
         assertEquals(

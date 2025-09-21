@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import org.timekeeper.exception.DuplicateRequestException;
-import org.timekeeper.exception.ForbiddenException;
 import org.timekeeper.exception.BadRequestException;
 import org.timekeeper.exception.ResourceNotFoundException;
 
@@ -43,14 +42,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         log.info("InvalidInputException encountered; translating to external exception: message={}", exception.getMessage());
 
         return handle(exception, HttpStatus.BAD_REQUEST);
-    }
-
-    @ExceptionHandler(ForbiddenException.class)
-    public ResponseEntity<ExceptionDetails> handle(ForbiddenException exception, WebRequest request) {
-        log.info("ForbiddenException encountered; translating to external exception: message={}", exception.getMessage());
-
-        HttpStatus status = HttpStatus.FORBIDDEN;
-        return handle(exception, status.getReasonPhrase(), status);
     }
 
     @ExceptionHandler(DuplicateRequestException.class)
