@@ -5,9 +5,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import org.timekeeper.configuration.client.UrlScanClientConfig;
 
 import java.util.Optional;
 
@@ -22,7 +20,7 @@ public class TimekeeperApplication {
     private enum Application {
         API_SERVER,
         STATUS_POLLER,
-        SCAN_REQUESTER
+        SCAN_SUBMITTER
     }
 
     public static void main(String[] args) {
@@ -32,7 +30,7 @@ public class TimekeeperApplication {
 
         log.info("Starting application: application={}", application);
         switch (application) {
-            case STATUS_POLLER, SCAN_REQUESTER:
+            case STATUS_POLLER, SCAN_SUBMITTER:
                 new SpringApplicationBuilder(TimekeeperApplication.class)
                     .web(WebApplicationType.NONE)
                     .run(args);

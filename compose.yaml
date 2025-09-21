@@ -47,11 +47,11 @@ services:
     depends_on:
       database:
         condition: service_healthy
-  scan-requester:
+  scan-submitter:
     build:
       context: .
     environment:
-      - APPLICATION=SCAN_REQUESTER
+      - APPLICATION=SCAN_SUBMITTER
     depends_on:
       database:
         condition: service_healthy

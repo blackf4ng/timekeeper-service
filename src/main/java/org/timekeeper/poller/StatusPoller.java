@@ -24,9 +24,9 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class StatusPoller {
 
-    private static final ScanResultStatus STATUS = ScanResultStatus.PROCESSING;
+    protected static final ScanResultStatus STATUS = ScanResultStatus.PROCESSING;
 
-    private static final Integer PAGE_SIZE = 20;
+    protected static final Integer PAGE_SIZE = 20;
 
     private final ScanService scanService;
 
@@ -35,7 +35,7 @@ public class StatusPoller {
     private final Clock clock;
 
     public void poll() {
-        log.info("Polling for scan results: status={}", STATUS);
+        log.info("Polling for scan results to update scan status: status={}", STATUS);
 
         Integer totalPages;
         Integer page = 0;
@@ -50,7 +50,7 @@ public class StatusPoller {
             for(ScanResult scanResult : scanResultList) {
                 Optional<Instant> delayUntil = process(scanResult);
                 if(delayUntil.isPresent()) {
-                    break;
+                    return;
                 }
             }
 
@@ -65,8 +65,16 @@ public class StatusPoller {
         HttpStatusCode statusCode = responseEntity.getStatusCode();
         GetResultResponse response = responseEntity.getBody();
 
-        // If the result is still in progress, then wait to retry later
-        if(urlScanClient.isInProgress(responseEntity)) {
+        // If the status was a 200, then the report is now ready
+        if (HttpStatus.OK.equals(statusCode)) {
+            scanService.updateScanResult(
+                scanResult.getId(),
+                ScanResultStatus.DONE,
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty()
+            );
+
             return Optional.empty();
         }
 
@@ -78,16 +86,8 @@ public class StatusPoller {
             return resetTime;
         }
 
-        // If the status was a 200, then the report is now ready
-        if (HttpStatus.OK.equals(statusCode)) {
-            scanService.updateScanResult(
-                scanResult.getId(),
-                ScanResultStatus.DONE,
-                Optional.empty(),
-                Optional.empty(),
-                Optional.empty()
-            );
-
+        // If the result is still in progress, then wait to retry later
+        if(urlScanClient.isInProgress(responseEntity)) {
             return Optional.empty();
         }
 

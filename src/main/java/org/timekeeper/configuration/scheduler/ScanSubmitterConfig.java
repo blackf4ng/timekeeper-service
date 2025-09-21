@@ -9,7 +9,7 @@ import org.springframework.scheduling.TriggerContext;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
-import org.timekeeper.poller.ScanRequester;
+import org.timekeeper.submitter.ScanSubmitter;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -20,11 +20,11 @@ import java.util.concurrent.Executors;
 
 @Configuration
 @EnableScheduling
-@ConditionalOnProperty(prefix = "application", name = "name", havingValue = "SCAN_REQUESTER")
-public class ScanRequesterConfig implements SchedulingConfigurer {
+@ConditionalOnProperty(prefix = "application", name = "name", havingValue = "SCAN_SUBMITTER")
+public class ScanSubmitterConfig implements SchedulingConfigurer {
 
     @Autowired
-    ScanRequester scanRequester;
+    ScanSubmitter scanSubmitter;
 
     @Autowired
     Clock clock;
@@ -38,7 +38,7 @@ public class ScanRequesterConfig implements SchedulingConfigurer {
     public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
         taskRegistrar.setScheduler(taskExecutor());
         taskRegistrar.addTriggerTask(
-            scanRequester::request,
+            scanSubmitter::submit,
             new Trigger() {
                 @Override
                 public Instant nextExecution(TriggerContext triggerContext) {

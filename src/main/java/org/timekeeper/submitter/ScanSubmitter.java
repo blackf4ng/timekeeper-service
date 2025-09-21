@@ -1,4 +1,4 @@
-package org.timekeeper.poller;
+package org.timekeeper.submitter;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,11 +22,11 @@ import java.util.Optional;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ScanRequester {
+public class ScanSubmitter {
 
-    private static final ScanResultStatus STATUS = ScanResultStatus.SUBMITTED;
+    protected static final ScanResultStatus STATUS = ScanResultStatus.SUBMITTED;
 
-    private static final Integer PAGE_SIZE = 20;
+    protected static final Integer PAGE_SIZE = 20;
 
     private final ScanService scanService;
 
@@ -34,8 +34,8 @@ public class ScanRequester {
 
     private final Clock clock;
 
-    public void request() {
-        log.info("Polling for scan results: status={}", STATUS);
+    public void submit() {
+        log.info("Polling for scan results to submit: status={}", STATUS);
 
         Integer totalPages;
         Integer page = 0;
