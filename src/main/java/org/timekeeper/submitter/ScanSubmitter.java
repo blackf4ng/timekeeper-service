@@ -1,6 +1,10 @@
 package org.timekeeper.submitter;
 
+import lombok.Builder;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Synchronized;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -24,6 +28,32 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ScanSubmitter {
 
+    /**
+     * Class for representing a delay to a specific time.
+     * Synchronization is required on the setter in case multiple threads run the same process function at the same time
+     */
+    @Getter
+    @ToString
+    @Builder(toBuilder = true)
+    public static class Delay {
+
+        @Builder.Default
+        private Optional<Instant> time = Optional.empty();
+
+        @Synchronized
+        public void setTime(Instant newTime) {
+            if (
+                time.filter(existingTime -> existingTime.isAfter(newTime))
+                    .isPresent()
+            ) {
+                return;
+            }
+
+            time = Optional.of(newTime);
+        }
+
+    }
+
     protected static final ScanResultStatus STATUS = ScanResultStatus.SUBMITTED;
 
     protected static final Integer PAGE_SIZE = 20;
@@ -32,10 +62,22 @@ public class ScanSubmitter {
 
     private final UrlScanClient urlScanClient;
 
+    private final Delay delay;
+
     private final Clock clock;
 
     public void submit() {
-        log.info("Polling for scan results to submit: status={}", STATUS);
+        Instant now = clock.instant();
+        Optional<Instant> delayTime = delay.getTime();
+        log.info("Polling for scan results to submit: status={} now={}", STATUS, now);
+        if (
+            delayTime.map(time -> time.isAfter(now))
+                .orElse(false)
+        ) {
+            log.info("Requested delay has not been met; cancelling: delay={} now={}", delayTime, now);
+
+            return;
+        }
 
         Integer totalPages;
         Integer page = 0;
@@ -50,6 +92,7 @@ public class ScanSubmitter {
             for (ScanResult scanResult : scanResultList) {
                 Optional<Instant> delayUntil = process(scanResult);
                 if (delayUntil.isPresent()) {
+                    delay.setTime(delayUntil.get());
                     return;
                 }
             }

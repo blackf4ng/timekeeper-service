@@ -16,7 +16,9 @@ import org.timekeeper.model.ScanResultStatus;
 import org.timekeeper.model.request.PageRequest;
 import org.timekeeper.service.ScanService;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,6 +26,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.timekeeper.submitter.ScanSubmitter.PAGE_SIZE;
@@ -56,6 +59,8 @@ public class ScanSubmitterTest {
 
     private static final String STATUS_DESCRIPTION = "statusDescription";
 
+    private static final Instant NOW = Instant.now();
+
     private static final ScanResult SCAN_RESULT_1 = ScanResult.builder()
         .id(SCAN_RESULT_ID_1)
         .url(URL_1)
@@ -76,6 +81,12 @@ public class ScanSubmitterTest {
 
     @Mock
     private UrlScanClient urlScanClient;
+
+    @Mock
+    private ScanSubmitter.Delay delay;
+
+    @Mock
+    private Clock clock;
 
     @InjectMocks
     private ScanSubmitter scanSubmitter;
@@ -99,6 +110,8 @@ public class ScanSubmitterTest {
             .thenReturn(page1);
         lenient().when(scanService.listScanResults(STATUS, pageRequest2))
             .thenReturn(page2);
+        lenient().when(clock.instant()).thenReturn(NOW);
+        lenient().when(delay.getTime()).thenReturn(Optional.empty());
     }
 
     @Test
@@ -220,6 +233,55 @@ public class ScanSubmitterTest {
         scanSubmitter.submit();
 
         verify(scanService, never()).updateScanResult(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testSubmit_withDelayInFuture_doesNothing() {
+        when(delay.getTime()).thenReturn(Optional.of(NOW.plus(1, ChronoUnit.MINUTES)));
+
+        scanSubmitter.submit();
+
+        verifyNoInteractions(scanService);
+        verifyNoInteractions(urlScanClient);
+    }
+
+    @Test
+    public void testSubmit_withDelayInPast_updatesStatusToProcessing() {
+        ResponseEntity<SubmitScanResponse> responseEntity1 = new ResponseEntity<>(
+            SubmitScanResponse.builder()
+                .uuid(URL_SCAN_ID_1)
+                .result(RESULT_URL_1)
+                .build(),
+            HttpStatus.OK
+        );
+        ResponseEntity<SubmitScanResponse> responseEntity2 = new ResponseEntity<>(
+            SubmitScanResponse.builder()
+                .uuid(URL_SCAN_ID_2)
+                .result(RESULT_URL_2)
+                .build(),
+            HttpStatus.OK
+        );
+
+        when(delay.getTime()).thenReturn(Optional.of(NOW.minus(1, ChronoUnit.MINUTES)));
+        when(urlScanClient.submitScan(URL_1)).thenReturn(responseEntity1);
+        when(urlScanClient.submitScan(URL_2)).thenReturn(responseEntity2);
+
+        scanSubmitter.submit();
+
+        verify(scanService).updateScanResult(
+            SCAN_RESULT_ID_1,
+            ScanResultStatus.PROCESSING,
+            Optional.empty(),
+            Optional.of(URL_SCAN_ID_1),
+            Optional.of(RESULT_URL_1)
+        );
+        verify(scanService).updateScanResult(
+            SCAN_RESULT_ID_2,
+            ScanResultStatus.PROCESSING,
+            Optional.empty(),
+            Optional.of(URL_SCAN_ID_2),
+            Optional.of(RESULT_URL_2)
+        );
     }
 
 }

@@ -16,11 +16,12 @@ import org.timekeeper.model.ScanResultStatus;
 import org.timekeeper.model.request.PageRequest;
 import org.timekeeper.service.ScanService;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -50,6 +51,8 @@ public class StatusPollerTest {
 
     private static final String STATUS_DESCRIPTION = "statusDescription";
 
+    private static final Instant NOW = Instant.now();
+
     private static final ScanResult SCAN_RESULT_1 = ScanResult.builder()
         .id(SCAN_RESULT_ID_1)
         .urlScanId(URL_SCAN_ID_1)
@@ -70,6 +73,12 @@ public class StatusPollerTest {
 
     @Mock
     private UrlScanClient urlScanClient;
+
+    @Mock
+    private StatusPoller.Delay delay;
+
+    @Mock
+    private Clock clock;
 
     @InjectMocks
     private StatusPoller statusPoller;
@@ -93,6 +102,8 @@ public class StatusPollerTest {
             .thenReturn(page1);
         lenient().when(scanService.listScanResults(STATUS, pageRequest2))
             .thenReturn(page2);
+        lenient().when(clock.instant()).thenReturn(NOW);
+        lenient().when(delay.getTime()).thenReturn(Optional.empty());
     }
 
     @Test
@@ -221,6 +232,43 @@ public class StatusPollerTest {
         statusPoller.poll();
 
         verify(scanService, never()).updateScanResult(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testPoll_withDelayInFuture_doesNothing() {
+        when(delay.getTime()).thenReturn(Optional.of(NOW.plus(1, ChronoUnit.MINUTES)));
+
+        statusPoller.poll();
+
+        verifyNoInteractions(scanService);
+        verifyNoInteractions(urlScanClient);
+    }
+
+    @Test
+    public void testPoll_withDelayInPast_updatesStatusToDone() {
+        ResponseEntity<GetResultResponse> responseEntity1 = new ResponseEntity<>(HttpStatus.OK);
+        ResponseEntity<GetResultResponse> responseEntity2 = new ResponseEntity<>(HttpStatus.OK);
+
+        when(delay.getTime()).thenReturn(Optional.of(NOW.minus(1, ChronoUnit.MINUTES)));
+        when(urlScanClient.getResult(URL_SCAN_ID_1)).thenReturn(responseEntity1);
+        when(urlScanClient.getResult(URL_SCAN_ID_2)).thenReturn(responseEntity2);
+
+        statusPoller.poll();
+
+        verify(scanService).updateScanResult(
+            SCAN_RESULT_ID_1,
+            ScanResultStatus.DONE,
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty()
+        );
+        verify(scanService).updateScanResult(
+            SCAN_RESULT_ID_2,
+            ScanResultStatus.DONE,
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty()
+        );
     }
 
 }

@@ -1,6 +1,10 @@
 package org.timekeeper.poller;
 
+import lombok.Builder;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Synchronized;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -19,10 +23,40 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Polls the status of scans that are still processing and updates their status
+ * if either processing is finished or an error is encountered
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class StatusPoller {
+
+    /**
+     * Class for representing a delay to a specific time.
+     * Synchronization is required on the setter in case multiple threads run the same process function at the same time
+     */
+    @Getter
+    @ToString
+    @Builder(toBuilder = true)
+    public static class Delay {
+
+        @Builder.Default
+        private Optional<Instant> time = Optional.empty();
+
+        @Synchronized
+        public void setTime(Instant newTime) {
+            if (
+                time.filter(existingTime -> existingTime.isAfter(newTime))
+                    .isPresent()
+            ) {
+                return;
+            }
+
+            time = Optional.of(newTime);
+        }
+
+    }
 
     protected static final ScanResultStatus STATUS = ScanResultStatus.PROCESSING;
 
@@ -32,10 +66,22 @@ public class StatusPoller {
 
     private final UrlScanClient urlScanClient;
 
+    private final Delay delay;
+
     private final Clock clock;
 
     public void poll() {
-        log.info("Polling for scan results to update scan status: status={}", STATUS);
+        Instant now = clock.instant();
+        Optional<Instant> delayTime = delay.getTime();
+        log.info("Polling for scan results to update scan status: status={} now={}", STATUS, now);
+        if (
+            delayTime.map(time -> time.isAfter(now))
+                .orElse(false)
+        ) {
+            log.info("Requested delay has not been met; cancelling: delay={} now={}", delayTime, now);
+
+            return;
+        }
 
         Integer totalPages;
         Integer page = 0;
@@ -47,9 +93,10 @@ public class StatusPoller {
             Page<ScanResult> scanResultPage = scanService.listScanResults(STATUS, pageRequest);
             List<ScanResult> scanResultList = scanResultPage.getData();
             log.info("Retrieved scan results for checking scan status: scanResultList={}", scanResultList);
-            for(ScanResult scanResult : scanResultList) {
+            for (ScanResult scanResult : scanResultList) {
                 Optional<Instant> delayUntil = process(scanResult);
-                if(delayUntil.isPresent()) {
+                if (delayUntil.isPresent()) {
+                    delay.setTime(delayUntil.get());
                     return;
                 }
             }
@@ -57,7 +104,7 @@ public class StatusPoller {
 
             totalPages = scanResultPage.getTotalPages();
             page++;
-        } while(page < totalPages);
+        } while (page < totalPages);
     }
 
     private Optional<Instant> process(ScanResult scanResult) {
@@ -87,7 +134,7 @@ public class StatusPoller {
         }
 
         // If the result is still in progress, then wait to retry later
-        if(urlScanClient.isInProgress(responseEntity)) {
+        if (urlScanClient.isInProgress(responseEntity)) {
             return Optional.empty();
         }
 

@@ -4,7 +4,7 @@
 
 The URL Scan Service is a system that allows users to submit, manage, and view the results of scans against URLs for
 potential security issues. The service offers an endpoint for clients to create, view, and delete scan requests through
-the `/v1/scans` endpoint.
+the `/scans` endpoint.
 
 ## Development
 
@@ -154,10 +154,10 @@ For example:
 
 The API Server provides a REST API for CRUD operations against URL scans through the following APIs:
 
-* GET `/v1/scans`: lists historical scan requests with summary information for each scan
-* GET `/v1/scans/{scanId}`: retrieves detailed information for a given scan
-* POST `/v1/scans`: submits a new scan request
-* DELETE `/v1/scans/{scanId}`: deletes an existing scan request
+* GET `/scans`: lists historical scan requests with summary information for each scan
+* GET `/scans/{scanId}`: retrieves detailed information for a given scan
+* POST `/scans`: submits a new scan request
+* DELETE `/scans/{scanId}`: deletes an existing scan request
 
 APIs require authentication, which is managed
 through [an Auth0 application](https://manage.auth0.com/dashboard/us/dev-bglprge8mcc8yj82/applications/7s16iwyxHFmiZO7CJeRYmaFMTqB7nP4I/settings).
@@ -215,7 +215,7 @@ requests that have not been sent to urlscan.io, and sends them to urlscan.io.
 
 The worker performs the following steps on every run:
 
-1. (To be implemented) Compare current time against throttle reset time
+1. Compare current time against throttle reset time
     * If throttle reset time does not exist or if current time is on or after the throttle reset time, continue
     * If current time is before throttle reset time, stop processing
 2. Queries the `scan_result` table for a page of scan results with a `SUBMITTED` status sorted in ascending order by
@@ -252,7 +252,7 @@ requests that have been successfully submitted to urlscan.io, and checks if the 
 
 The worker performs the following steps on every run:
 
-1. (To be implemented) Compare current time against throttle reset time
+1. Compare current time against throttle reset time
     * If throttle reset time does not exist or if current time is on or after the throttle reset time, continue
     * If current time is before throttle reset time, stop processing
 2. Queries the `scan_result` table for a page of scan results with a `PROCESSING` status sorted in ascending order by

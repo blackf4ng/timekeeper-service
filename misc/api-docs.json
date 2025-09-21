@@ -11,7 +11,7 @@
     }
   ],
   "paths": {
-    "/v1/scans": {
+    "/scans": {
       "get": {
         "tags": [
           "scan-controller"
@@ -102,7 +102,7 @@
         }
       }
     },
-    "/v1/scans/{scanId}": {
+    "/scans/{scanId}": {
       "get": {
         "tags": [
           "scan-controller"

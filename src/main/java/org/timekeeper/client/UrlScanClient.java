@@ -19,7 +19,7 @@ public class UrlScanClient {
 
     protected static final String THROTTLE_RESET_HEADER = "X-Rate-Limit-Reset";
 
-    protected static final String IN_PROGRESS_MESSAGE = "Scan is not finished yet";
+    protected static final String IN_PROGRESS_MESSAGE = "not finished yet";
 
     private final RestClient client;
 
@@ -86,7 +86,10 @@ public class UrlScanClient {
 
     public boolean isInProgress(ResponseEntity<GetResultResponse> response) {
         return HttpStatus.NOT_FOUND.equals(response.getStatusCode()) &&
-            IN_PROGRESS_MESSAGE.equals(response.getBody().getMessage());
+            Optional.ofNullable(response.getBody())
+                .map(GetResultResponse::getMessage)
+                .map(message -> message.contains(IN_PROGRESS_MESSAGE))
+                .orElse(false);
     }
 
 }
