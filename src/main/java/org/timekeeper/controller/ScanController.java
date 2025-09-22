@@ -29,11 +29,11 @@ import java.util.Optional;
 import static org.timekeeper.database.postgresql.repository.Constants.MAX_PAGE_SIZE;
 
 /**
- * Controller for servicing REST API calls to the v1/scans endpoint
+ * Controller for servicing REST API calls to the /scans endpoint
  */
 @Slf4j
 @RestController
-@RequestMapping(value = "v1/scans", produces = "application/json")
+@RequestMapping(value = "scans", produces = "application/json")
 @RequiredArgsConstructor
 public class ScanController implements Controller {
 
